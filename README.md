@@ -1,5 +1,5 @@
 # Culture Emotional Contagion
-Code and data supporting [FINAL PAPER TITLE (Hsu et al., YEAR, JOURNAL)]
+Materials supporting [FINAL PAPER TITLE (Hsu et al., YEAR, JOURNAL)]
 
 ## Citation
 [insert citation]
