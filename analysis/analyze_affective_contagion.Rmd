@@ -1,0 +1,313 @@
+---
+title: "twitter_analyze"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(nnet)
+library(nlme)
+library(car)
+library(ggplot2)
+library(dotwhisker)
+library(broom)
+library(tidyverse)
+library(lmerTest)
+```
+
+
+Between culture analysis
+```{r}
+# Read in data
+dfAllBetCult = read.csv("data/processed_data_alternative_exposure_calc/between_culture_comparison_univariate.csv",
+                 header = TRUE)
+```
+```{r}
+# Run models
+betculthapmod = glmer(formula=HAP ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betcultlapmod = glmer(formula=LAP ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betculthanmod = glmer(formula=HAN ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betcultlanmod = glmer(formula=LAN ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+```
+```{r}
+# Clean up model output
+btcultmodhapfilter <- broom::tidy(betculthapmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='friendHAP:culture')
+
+btcultmodlapfilter <- broom::tidy(betcultlapmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendLAP')
+
+btcultmodhanfilter <- broom::tidy(betculthanmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendHAN')
+
+btcultmodlanfilter <- broom::tidy(betcultlanmod) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendLAN')
+
+
+btcultmodfilter = rbind_list(list(btcultmodhapfilter,
+                                  btcultmodlapfilter,
+                                  btcultmodlanfilter,
+                                  btcultmodhanfilter)) %>% 
+  mutate(term = recode_factor(term, 'culture:friendHAN'='HAN', 'culture:friendLAN'='LAN',
+                              'culture:friendLAP'='LAP', 'friendHAP:culture'='HAP')) %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or)
+```
+```{r}
+# Plot
+axiscolors = c("darkcyan","mediumturquoise","orange","#FF6633")
+btcultplot = dwplot(btcultmodfilter,
+       vline = geom_vline(xintercept = 1, colour = "grey60", linetype = 2, size=1),
+       order_vars = c('HAP','LAP','LAN','HAN'),
+       dodge_size = 0.1,
+       dot_args = list(size = 5, pch = 21, stroke=2, fill = "white", color="black"),
+       whisker_args = list(size = 1.5, fill = "white",  color="black")) + 
+  theme_bw() + 
+  scale_x_continuous(limits=c(0.94, 1.04), 
+                     breaks=seq(0.94,1.04,0.02)) + 
+  theme(legend.position = "none",
+         axis.text = element_text(size=24)
+        )
+print(btcultplot)
+ggsave("plots/originaltweets_contagion_betweenculture.pdf", btcultplot, width = 12, height = 4)
+```
+
+
+
+Within-culture analysis
+```{r}
+# Read data
+dfUS = read.csv("data/processed_data_alternative_exposure_calc/US_within_culture_comparison.csv",
+                 header = TRUE)
+```
+```{r}
+# Clean up data
+dfUS = dfUS %>% 
+  mutate(xfriendHAP = xfriendHAP*100,
+         xfriendLAP = xfriendLAP*100,
+         xfriendHAN = xfriendHAN*100,
+         xfriendLAN = xfriendLAN*100,
+         xfriendNEU = xfriendNEU*100)
+```
+```{r}
+# Formulate and run model
+USglmer = Y ~ 0 +
+  dhap + dlap + dhan + dlan +
+  dhap:(xfriendHAP + xfriendLAP + xfriendHAN + xfriendLAN) +
+  dlap:(xfriendHAP + xfriendLAP + xfriendHAN + xfriendLAN) +
+  dhan:(xfriendHAP + xfriendLAP + xfriendHAN + xfriendLAN) +
+  dlan:(xfriendHAP + xfriendLAP + xfriendHAN + xfriendLAN) +
+  (0 + dhap + dlap + dhan + dlan |subID)
+
+multivarmod = glmer(USglmer,
+                    data=dfUS,
+                    family=binomial(link=logit),
+                    nAGQ=0,
+                    control=glmerControl(optimizer = "nloptwrap"))
+
+```
+```{r}
+# Clean up model output
+df.multivarmod <- as.data.frame(tidy(multivarmod)) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='dlan:xfriendLAN' |
+         term=='dhan:xfriendHAN' |
+         term=='dlap:xfriendLAP' |
+         term=='dhap:xfriendHAP') %>% 
+  mutate(term = recode_factor(term, 'dhan:xfriendHAN'='HAN', 'dlan:xfriendLAN'='LAN', 
+                              'dlap:xfriendLAP'='LAP', 'dhap:xfriendHAP'='HAP')) %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or)
+```
+```{r}
+# Plot
+axiscolors = c("darkcyan","mediumturquoise","orange","#FF6633")
+
+plot.multivarmod = dwplot(df.multivarmod, conf.level = .95,
+       vline = geom_vline(xintercept = 1, colour = "grey60", linetype = 2, size=1),
+       order_vars = c('HAP','LAP','LAN','HAN'),
+       dodge_size = 0.1,
+       dot_args = list(size = 5, pch = 21, stroke=2, fill = "white", color="grey41"),
+       whisker_args = list(size = 1.5, fill = "white",  color="grey41")) + 
+  scale_x_continuous(limits=c(1.00,1.063),
+                     breaks=seq(1.00, 1.063, 0.01)) + 
+  theme_bw() + 
+  theme(legend.position = "none",
+         axis.text.y = element_text(size=24),
+        axis.text.x = element_text(size=20)
+        #axis.text.y = element_text(color=axiscolors)
+        )
+print(plot.multivarmod)
+ggsave("plots/JP_originaltweets_contagion_withinculture.pdf", plot.multivarmod, width = 7, height = 4)
+```
+```{r}
+# Formal comparison of model coefficient estimates
+linearHypothesis(multivarmod, "dhan:xfriendHAN = dhap:xfriendHAP")
+```
+
+
+Contagion Matrix
+```{r}
+df.multivarmod_allpairs <- as.data.frame(tidy(multivarmod)) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='dhap:xfriendHAP' |
+         term=='dlap:xfriendHAP' |
+         term=='dlan:xfriendHAP' |
+         term=='dhan:xfriendHAP' | 
+         term=='dhap:xfriendLAP' |
+         term=='dlap:xfriendLAP' |
+         term=='dlan:xfriendLAP' |
+         term=='dhan:xfriendLAP' |
+         term=='dhap:xfriendHAN' |
+         term=='dlap:xfriendHAN' |
+         term=='dlan:xfriendHAN' |
+         term=='dhan:xfriendHAN' |
+         term=='dhap:xfriendLAN' |
+         term=='dlap:xfriendLAN' |
+         term=='dlan:xfriendLAN' |
+         term=='dhan:xfriendLAN') %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or) %>% 
+  select(c(term, or))
+```
+```{r}
+df.multivarmod_allpairs_mat = df.multivarmod_allpairs %>% 
+  spread(term, or)
+
+user_affect = c('HAP',
+               'HAP',
+               'HAP',
+               'HAP',
+               'LAP',
+               'LAP',
+               'LAP',
+               'LAP',
+               'LAN',
+               'LAN',
+               'LAN',
+               'LAN',
+               'HAN',
+               'HAN',
+               'HAN',
+               'HAN')
+
+exposure = c('%HAP',
+             '%LAP',
+             '%LAN',
+             '%HAN',
+             '%HAP',
+             '%LAP',
+             '%LAN',
+             '%HAN',
+             '%HAP',
+             '%LAP',
+             '%LAN',
+             '%HAN',
+             '%HAP',
+             '%LAP',
+             '%LAN',
+             '%HAN')
+
+odds_ratio = c(df.multivarmod_allpairs_mat$'dhap:xfriendHAP', 
+         df.multivarmod_allpairs_mat$'dhap:xfriendLAP', 
+         df.multivarmod_allpairs_mat$'dhap:xfriendLAN', 
+         df.multivarmod_allpairs_mat$'dhap:xfriendHAN',
+         df.multivarmod_allpairs_mat$'dlap:xfriendHAP', 
+         df.multivarmod_allpairs_mat$'dlap:xfriendLAP', 
+         df.multivarmod_allpairs_mat$'dlap:xfriendLAN', 
+         df.multivarmod_allpairs_mat$'dlap:xfriendHAN',
+         df.multivarmod_allpairs_mat$'dlan:xfriendHAP', 
+         df.multivarmod_allpairs_mat$'dlan:xfriendLAP', 
+         df.multivarmod_allpairs_mat$'dlan:xfriendLAN', 
+         df.multivarmod_allpairs_mat$'dlan:xfriendHAN',
+         df.multivarmod_allpairs_mat$'dhan:xfriendHAP', 
+         df.multivarmod_allpairs_mat$'dhan:xfriendLAP', 
+         df.multivarmod_allpairs_mat$'dhan:xfriendLAN', 
+         df.multivarmod_allpairs_mat$'dhan:xfriendHAN')
+
+allpairs_mat = data.frame(
+  user_affect = user_affect,
+  exposure = exposure,
+  odds_ratio = odds_ratio
+)
+
+allpairs_mat$user_affect = factor(allpairs_mat$user_affect, 
+                                 levels = c('HAN','LAN','LAP','HAP'))
+allpairs_mat$exposure = factor(allpairs_mat$exposure, 
+                                 levels = c('%HAP','%LAP','%LAN','%HAN'))
+```
+```{r}
+multivar_allpairs_plot <- ggplot(allpairs_mat, aes(exposure, user_affect)) + 
+  geom_tile(aes(fill = odds_ratio), colour = "white") + 
+  scale_fill_gradient2(low = "cadetblue4", mid = "white", high="tan3", midpoint = 1) +
+  theme_bw() + 
+  theme(axis.text = element_text(size=24),
+        axis.title =element_blank())
+print(multivar_allpairs_plot)
+ggsave("plots/US_matrix_contagion.pdf", multivar_allpairs_plot, width = 7, height = 4)
+```
+
+
+
+
