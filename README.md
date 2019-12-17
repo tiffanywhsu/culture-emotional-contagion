@@ -10,11 +10,14 @@ Data were collected through the public Twitter API (https://dev.twitter.com/over
 
 ### Code
 The preprocessing scripts should be used in the following order:
-- First, obtain English SentiStrength (http://sentistrength.wlv.ac.uk/) and Japanese SentiStrength (https://github.com/tiffanywhsu/japanese-sentistrength)
+- Collect Twitter data using twitter_collection.py
+- Obtain English SentiStrength (http://sentistrength.wlv.ac.uk/) and Japanese SentiStrength (https://github.com/tiffanywhsu/japanese-sentistrength)
 - run_en_sentistrength.py (for using English SentiStrength) | run_jp_sentistrength.py (for using Japanese SentiStrength)
 - process_sentistrength_results.py
 - calculate_exposure.py
 - aggregate_across_samples.py
+
+To analyze data, first run preprocess_for_affective_content.py and preprocess_for_affective_contagion.py, then use the files outputted in analyze.Rmd.
 
 
 ## Authors
