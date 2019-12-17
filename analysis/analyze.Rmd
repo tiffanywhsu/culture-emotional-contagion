@@ -1,0 +1,409 @@
+---
+title: "twitter_analyze"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(nnet)
+library(nlme)
+library(ggplot2)
+library(dotwhisker)
+library(broom)
+library(tidyverse)
+library(lmerTest)
+library(sjPlot)
+library(ggrepel)
+library(car)
+```
+
+
+
+######################### Affective Content ####################################
+```{r}
+dfContent = read.csv("data/all_affectivecontent.csv",
+                 header = TRUE)
+```
+
+All
+```{r}
+dfContent.All = dfContent %>% filter(type == 'All')
+```
+```{r}
+dfContent.All$culture = factor(dfContent.All$culture, levels = c("US",'JP'))
+dfContent.All$affect = factor(dfContent.All$affect, levels = c("HAN",'LAN','LAP','HAP'))
+```
+```{r}
+plot.content = ggplot(dfContent.All,
+                          aes(x = affect, y = value, fill = culture, group = culture)) +
+  geom_bar(stat="identity", color="black", position=position_dodge(0.7), width=0.7) +
+  scale_y_continuous(limits=c(0, 40),
+                     breaks=seq(0, 40, 10)) +
+  scale_fill_manual(values=c("#3b3b3b", "#bebebe")) +
+  scale_x_discrete(labels=c("High Arousal\nNegative\n(HAN)", "Low Arousal\nNegative\n(LAN)", "Low Arousal\nPositive\n(LAP)", "High Arousal\nPositive\n(HAP)")) +
+  ylab("Percentage of Tweets") +
+  theme_bw() +
+  theme(legend.position = "none",
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(size=12),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.border = element_blank()
+        ) 
+
+print(plot.content)
+#ggsave("plots/newplots/allcategories_originaltweets_content.pdf", plot.content, width = 7, height = 3)
+```
+Pure
+```{r}
+dfContect.Pure = dfContent %>% filter(type == 'Pure')
+```
+```{r}
+dfContect.Pure$culture = factor(dfContect.Pure$culture, levels = c("US",'JP'))
+dfContect.Pure$affect = factor(dfContect.Pure$affect, levels = c("HAN",'LAN','LAP','HAP'))
+```
+```{r}
+plot.content = ggplot(dfContect.Pure,
+                          aes(x = affect, y = value, fill = culture, group = culture)) +
+  geom_bar(stat="identity", color="black", position=position_dodge(0.7), width=0.7) +
+  scale_y_continuous(limits=c(0, 40),
+                     breaks=seq(0, 40, 10)) +
+  scale_fill_manual(values=c("#3b3b3b", "#bebebe")) +
+  scale_x_discrete(labels=c("High Arousal\nNegative\n(HAN)", "Low Arousal\nNegative\n(LAN)", "Low Arousal\nPositive\n(LAP)", "High Arousal\nPositive\n(HAP)")) +
+  ylab("Percentage of Tweets") +
+  xlab("Pure") +
+  theme_bw() +
+  theme(legend.position = "none",
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(size=12),
+        axis.title.y = element_text(size=16),
+        axis.title.x = element_text(size=16),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.border = element_blank()
+        ) 
+
+print(plot.content)
+#ggsave("plots/newplots/allcategories_originaltweets_content_pure.pdf", plot.content, width = 7, height = 3)
+```
+Mixed
+```{r}
+dfContect.Mixed = dfContent %>% filter(type == 'Mixed')
+```
+```{r}
+dfContect.Mixed$culture = factor(dfContect.Mixed$culture, levels = c("US",'JP'))
+dfContect.Mixed$affect = factor(dfContect.Mixed$affect, levels = c("LAPHAN",'HAPHAN','LAPLAN','HAPLAN'))
+```
+```{r}
+plot.content = ggplot(dfContect.Mixed,
+                          aes(x = affect, y = value, fill = culture, group = culture)) +
+  geom_bar(stat="identity", color="black", position=position_dodge(0.7), width=0.7) +
+  scale_y_continuous(limits=c(0, 40),
+                     breaks=seq(0, 40, 10)) +
+  scale_fill_manual(values=c("#3b3b3b", "#bebebe")) +
+  scale_x_discrete(labels=c("HAN-LAP", "HAN-HAP", "LAN-LAP", "LAN-HAP")) +
+  ylab("Percentage of Tweets") +
+  xlab("Mixed") +
+  theme_bw() +
+  theme(legend.position = "none",
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(size=12),
+        axis.title.y = element_text(size=16),
+        axis.title.x = element_text(size=16),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.border = element_blank()
+        ) 
+
+print(plot.content)
+#ggsave("plots/newplots/allcategories_originaltweets_content_mixed.pdf", plot.content, width = 7.5, height = 3)
+```
+
+
+
+############################ Affective Contagion ###############################
+
+###### Within-Culture Contagion ###########
+Load and clean data
+```{r}
+dfUS = read.csv("data/US_within_culture_comparison.csv",
+                 header = TRUE)
+dfJP = read.csv("data/JP_within_culture_comparison.csv",
+                 header = TRUE)
+```
+```{r}
+dfUS = dfUS %>% 
+  mutate(expoHAP = xfriendHAP*100,
+         expoLAP = xfriendLAP*100,
+         expoHAN = xfriendHAN*100,
+         expoLAN = xfriendLAN*100,
+         expoNEU = xfriendNEU*100)
+dfJP = dfJP %>% 
+  mutate(expoHAP = xfriendHAP*100,
+         expoLAP = xfriendLAP*100,
+         expoHAN = xfriendHAN*100,
+         expoLAN = xfriendLAN*100,
+         expoNEU = xfriendNEU*100)
+```
+
+Model and clean results to one dataframe
+```{r}
+model_formula = Y ~ 0 +
+  dhap + dlap + dhan + dlan +
+  dhap:(expoHAP + expoLAP + expoHAN + expoLAN) +
+  dlap:(expoHAP + expoLAP + expoHAN + expoLAN) +
+  dhan:(expoHAP + expoLAP + expoHAN + expoLAN) +
+  dlan:(expoHAP + expoLAP + expoHAN + expoLAN) +
+  (0 + dhap + dlap + dhan + dlan |subID)   #U
+```
+```{r}
+# Run models
+US_multivarmod = glmer(model_formula,
+                    data=dfUS,
+                    family=binomial(link=logit),
+                    nAGQ=0,
+                    control=glmerControl(optimizer = "nloptwrap"))
+JP_multivarmod = glmer(model_formula,
+                    data=dfJP,
+                    family=binomial(link=logit),
+                    nAGQ=0,
+                    control=glmerControl(optimizer = "nloptwrap"))
+
+```
+```{r}
+# Clean model outputs
+df.US.multivarmod <- as.data.frame(tidy(US_multivarmod)) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='dlan:expoLAN' |
+         term=='dhan:expoHAN' |
+         term=='dlap:expoLAP' |
+         term=='dhap:expoHAP') %>% 
+  mutate(term = recode_factor(term, 'dhan:expoHAN'='HAN', 'dlan:expoLAN'='LAN', 
+                              'dlap:expoLAP'='LAP', 'dhap:expoHAP'='HAP')) %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or)
+
+df.JP.multivarmod <- as.data.frame(tidy(JP_multivarmod)) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='dlan:expoLAN' |
+         term=='dhan:expoHAN' |
+         term=='dlap:expoLAP' |
+         term=='dhap:expoHAP') %>% 
+  mutate(term = recode_factor(term, 'dhan:expoHAN'='HAN', 'dlan:expoLAN'='LAN', 
+                              'dlap:expoLAP'='LAP', 'dhap:expoHAP'='HAP')) %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or)
+```
+```{r}
+# Combine outputs of both cultures
+culture = c('US', 'US', 'US', 'US', 'JP', 'JP', 'JP', 'JP')
+colors = c("black", "black", "black", "black", "grey41", "grey41", "grey41", "grey41")
+df.both.multivarmod = rbind(df.US.multivarmod, df.JP.multivarmod)
+df.both.multivarmod$"culture" = culture
+df.both.multivarmod$"colors" = colors
+
+df.both.multivarmod = df.both.multivarmod %>% 
+  mutate(affect = term) %>% 
+  select(-c(term))
+
+df.both.multivarmod$culture = factor(df.both.multivarmod$culture, levels = c("US",'JP'))
+df.both.multivarmod$affect = factor(df.both.multivarmod$affect, levels = c("HAN",'LAN','LAP','HAP'))
+```
+
+Plot
+```{r}
+plot.multivarmod = ggplot(df.both.multivarmod,
+                          aes(x = affect, y = or-1, fill = culture, group = culture)) +
+  geom_bar(stat="identity", color="black", position=position_dodge(0.7), width=0.7) +
+  geom_errorbar(aes(ymin=conf.low-1, ymax=conf.high-1), position=position_dodge(0.7), width=.1) +
+  scale_y_continuous(limits=c(0.00,0.045),
+                     breaks=seq(0.00, 0.045, 0.01),
+                     labels = function(y) y + 1) +
+  scale_fill_manual(values=c("#3b3b3b", "#bebebe"), labels = c("United States", "Japan")) +
+  scale_x_discrete(labels=c("High Arousal\nNegative\n(HAN)", "Low Arousal\nNegative\n(LAN)", "Low Arousal\nPositive\n(LAP)", "High Arousal\nPositive\n(HAP)")) +
+  ylab("Contagiousness") +
+  theme_bw() +
+  theme(legend.position = "none",
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(size=12),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        panel.border = element_blank()
+        ) 
+
+print(plot.multivarmod)
+#ggsave("plots/newplots/allcategories_originaltweets_contagion.pdf", plot.multivarmod, width = 7, height = 3)
+```
+
+Stats to compare coefficients
+```{r}
+linearHypothesis(JP_multivarmod, "dlan:expoLAN = dhap:expoHAP")
+```
+
+
+
+###### Between-Culture Contagion ###########
+Load data
+```{r}
+dfAllBetCult = read.csv("data/between_culture_comparison.csv",
+                 header = TRUE)
+```
+Run models
+```{r}
+betculthapmod = glmer(formula=HAP ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betcultlapmod = glmer(formula=LAP ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betculthanmod = glmer(formula=HAN ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+betcultlanmod = glmer(formula=LAN ~ 1 + 
+                        friendHAP*culture + 
+                        friendLAP*culture + 
+                        friendLAN*culture + 
+                        friendHAN*culture + 
+                        (1|subID), 
+                data=dfAllBetCult,
+               family=binomial,
+               nAGQ=0,
+               control=glmerControl(optimizer = "nloptwrap"))
+```
+Clean model outputs and combine to one dataframe
+```{r}
+btcultmodhapfilter <- broom::tidy(betculthapmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='friendHAP:culture')
+
+btcultmodlapfilter <- broom::tidy(betcultlapmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendLAP')
+
+btcultmodhanfilter <- broom::tidy(betculthanmod) %>% 
+  filter(group == 'fixed') %>% 
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendHAN')
+
+btcultmodlanfilter <- broom::tidy(betcultlanmod) %>% 
+  filter(group == 'fixed') %>%
+  mutate(or = exp(estimate),
+         conf.low = exp(estimate-1.96*std.error),
+         conf.high = exp(estimate+1.96*std.error)) %>% 
+  filter(term=='culture:friendLAN')
+
+
+btcultmodfilter = rbind_list(list(btcultmodhapfilter,
+                                  btcultmodlapfilter,
+                                  btcultmodlanfilter,
+                                  btcultmodhanfilter)) %>% 
+  mutate(term = recode_factor(term, 'culture:friendHAN'='HAN', 'culture:friendLAN'='LAN',
+                              'culture:friendLAP'='LAP', 'friendHAP:culture'='HAP')) %>% 
+  select(-c(estimate, std.error)) %>% 
+  mutate(estimate = or)
+```
+
+
+####################### Contagion vs. Content ##################################
+Join contagion and content dataframes
+```{r}
+df.contagion.content = inner_join(dfContent.All, df.both.multivarmod, by=c("culture", "affect"))
+df.contagion.content = df.contagion.content %>% 
+  select(c(affect, culture, value, or)) %>% 
+  rename(content = value) %>% 
+  rename(contagion = or)
+```
+Plot
+```{r}
+plot.contentcontagion = ggplot(df.contagion.content,
+                               aes(x = content, y = contagion, label=affect, 
+                                   group = culture,
+                                   fill = culture,
+                                   color=culture)) + 
+  geom_point(size=2.5) +
+  geom_label_repel(box.padding = 0.35, 
+                  point.padding = 0.4,
+                  segment.color = 'black',
+                  label.size = NA, 
+                  color = "white") +
+  scale_x_continuous(limits=c(0, 40),
+                     breaks=seq(0, 40, 10)) +
+  scale_y_continuous(limits=c(1.00,1.045),
+                     breaks=seq(1.00, 1.045, 0.01)) +
+  scale_fill_manual(values=c("#3b3b3b", "#bebebe"), 
+                    labels = c("United States", "Japan")) +
+  scale_color_manual(values=c("#3b3b3b", "#bebebe"), 
+                    labels = c("United States", "Japan")) +
+  #scale_fill_manual(values=c("white", "white"), labels = c("United States", "Japan")) +
+  ylab("Affective contagion (contagiousness)") +
+  xlab("Affective content (percentage of original tweets)") +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size=10),
+        axis.text.x = element_text(size=10),
+        axis.title.y = element_text(size=11),
+        axis.title.x = element_text(size=11),
+        strip.text.x = element_text(size=16)
+        #panel.grid.major = element_blank(), 
+        #panel.grid.minor = element_blank(),
+        ) 
+
+print(plot.contentcontagion)
+#ggsave("plots/newplots/originaltweets_contagion_vs_content.pdf", plot.contentcontagion, width = 4, height = 5)
+```
+
+Correlation test for contagion vs. content
+```{r}
+cor.test(df.contagion.content$content,df.contagion.content$contagion,method="spearman", alternative="two.sided")
+```
+
