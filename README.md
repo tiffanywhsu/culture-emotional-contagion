@@ -1,5 +1,5 @@
 # Culture Emotional Contagion
-Materials supporting "Cultural ideals modulate affective content and contagion on social media" (Hsu et al., submitted).
+Materials supporting "Social media in the U.S. and Japan: Cultural values shape the prevalence and contagiousness of affective content online" (Hsu et al., under review).
 
 ## Citation
 [insert citation]
