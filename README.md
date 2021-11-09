@@ -1,8 +1,8 @@
 # Culture Emotional Contagion
-Materials supporting "Social media in the U.S. and Japan: Cultural values shape the prevalence and contagiousness of affective content online" (Hsu et al., under review).
+Materials supporting "Social media in the U.S. and Japan: Cultural values shape the prevalence and contagiousness of affective content online" (Hsu et al., 2021, JPSP).
 
 ## Citation
-[insert citation]
+Hsu, T.W., Niiya, Y., Thelwall, M., Ko, M., Knutson, B. and Tsai, J.L. (2021) Social media users produce more affect that supports cultural values, but are more influenced by affect that violates cultural values. Journal of Personality and Social Psychology. https://doi.org/10.1037/pspa0000282
 
 ## Content
 ### Data
