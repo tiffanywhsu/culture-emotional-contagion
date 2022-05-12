@@ -28,4 +28,5 @@ To analyze data, first run preprocess_for_affective_content.py and preprocess_fo
 ## Acknowledgements
 - **Mike Thelwall** (Professor, University of Wolverhampton, UK) -- for contributing to Japanese SentiStrength and for developing English SentiStrength
 - **Yu Niiya** (Professor, Hosei University, Japan) -- for contributing to Japanese SentiStrength
+- **Yu Niiya** (Professor, Hosei University, Japan) -- for contributing to Japanese SentiStrength
 
