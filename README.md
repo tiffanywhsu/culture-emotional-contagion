@@ -18,15 +18,3 @@ The preprocessing scripts should be used in the following order:
 - aggregate_across_samples.py
 
 To analyze data, first run preprocess_for_affective_content.py and preprocess_for_affective_contagion.py, then use the files outputted in analyze.Rmd.
-
-
-## Authors
-- **Tiffany W. Hsu** (PhD candidate, Stanford University) -- for writing the majority of the code, developing the contagion model
-- **Michael Ko** (Masters student, Stanford University) -- for optimizing calculate_exposure.py
-
-
-## Acknowledgements
-- **Mike Thelwall** (Professor, University of Wolverhampton, UK) -- for contributing to Japanese SentiStrength and for developing English SentiStrength
-- **Yu Niiya** (Professor, Hosei University, Japan) -- for contributing to Japanese SentiStrength
-- **Yu Niiya** (Professor, Hosei University, Japan) -- for contributing to Japanese SentiStrength
-
